@@ -7,8 +7,8 @@
 #include "config.h"
 
 // WiFi credentials
-const char *ssid = "Han Sang";
-const char *password = "binhxinh";
+const char *ssid = "Realme GT Neo2 5G";
+const char *password = "Duy9999***#";
 #define WIFI_CHANNEL 6
 
 FirebaseData fbdo;

@@ -78,7 +78,8 @@ void handleButtonPress() {
     if (xSemaphoreTake(buttonSemaphore, portMAX_DELAY) == pdTRUE) {
         if (currentMillis - lastPressTime > DEBOUNCE_DELAY) {
             lastPressTime = currentMillis;
-
+            myServo.write(20);
+            delay(1000);
             if (pressCount == 0) {
                 if (controller != nullptr) {
                     controller->setRingStatus(true);
