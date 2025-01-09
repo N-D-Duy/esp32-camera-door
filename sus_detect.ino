@@ -9,7 +9,7 @@
 #define BUTTON_PIN      14
 #define SERVO_PIN       18
 
-constexpr unsigned long DEBOUNCE_DELAY = 1000;    
+constexpr unsigned long DEBOUNCE_DELAY = 3000;    
 constexpr unsigned long RESET_RING_TIME = 20000;
 
 volatile unsigned long lastPressTime = 0;
@@ -29,7 +29,6 @@ void setup() {
     pinMode(BUTTON_PIN, INPUT_PULLUP);
 
     myServo.attach(SERVO_PIN);
-    myServo.write(90);
 
     buttonSemaphore = xSemaphoreCreateMutex();
     if (buttonSemaphore == nullptr) {
@@ -40,12 +39,22 @@ void setup() {
     controller = new Controller();
     if (controller != nullptr) {
         controller->setup();
+        bool doorState = controller->getDoorStatus();
+        if (doorState) {
+            myServo.write(20); //open
+        } else {
+            myServo.write(90); //closed
+        }
+        Serial.println(doorState ? "Door is open" : "Door is closed");
     }
 
     initI2S();
 }
 
 void loop() {
+    controller->streamData();
+    bool doorState = controller->getDoorStatus();
+
     static int lastButtonState = HIGH;
     int buttonState = digitalRead(BUTTON_PIN);
 
@@ -62,7 +71,6 @@ void loop() {
 
     unsigned long currentMillis = millis();
     if (currentMillis - lastPressTime > RESET_RING_TIME) {
-
         if (controller != nullptr) {
             controller->setRingStatus(false);
         }
@@ -78,8 +86,20 @@ void handleButtonPress() {
     if (xSemaphoreTake(buttonSemaphore, portMAX_DELAY) == pdTRUE) {
         if (currentMillis - lastPressTime > DEBOUNCE_DELAY) {
             lastPressTime = currentMillis;
-            myServo.write(20);
+
+            bool doorState = controller->getDoorStatus();
+            if (doorState) {
+                myServo.write(90); // Close door
+                controller->setDoorStatus(false);
+                Serial.println("Door closed");
+            } else {
+                myServo.write(20); // Open door
+                controller->setDoorStatus(true);
+                Serial.println("Door opened");
+            }
+
             delay(1000);
+
             if (pressCount == 0) {
                 if (controller != nullptr) {
                     controller->setRingStatus(true);
@@ -89,7 +109,7 @@ void handleButtonPress() {
             } else {
                 playTone(1500, 500, 1);
             }
-            
+
             pressCount++;
         }
 
